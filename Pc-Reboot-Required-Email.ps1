@@ -1,5 +1,5 @@
 #
-#  VERIFICA SE IL PC HA BISOGNO DI REBOOT E MANDA UN ALERT ALL'UTENTE VIA EMAIL
+#  VERIFY IF PC NEED TO BE REBOOTED AND SEND AN'EMAIL TO USER
 #
 
 Function Get-PendingRebootStatus {
@@ -118,10 +118,10 @@ Function Get-PendingRebootStatus {
     }
     
     $body=@"
-    <div>Sono stati installati degli aggiornamenti di sicurezza sul tuo computer ed &egrave; necessario effettuare il riavvio prima possibile.</div>
+    <div>Update were installed on your computer and need to be rebooted</div>
     <div>&nbsp;</div>
     <div><b>ICT Department</b></div>
-    <div>Questa email &egrave; generata automaticamente.</div>
+    
 "@
 
     $iplist = nmap 192.168.2.0/24, 192.168.3.0/24, 192.168.4.0/24, 192.168.5.0/24, 192.168.6.0/24, 192.168.7.0/24, 192.168.8.0/24, 192.168.9.0/24, 192.168.21.0/24 -T4 -p135 --open -oG - | Where-Object{$_ -match 'Ports: 135'} | %{ $_.Split(' ')[1]; }
@@ -130,13 +130,13 @@ Function Get-PendingRebootStatus {
         $pr = (Get-PendingRebootStatus -ComputerName $ip).PendingReboot
         if ($pr -eq 'True') {
             try {
-                $user = ((Get-WmiObject -ComputerName $ip Win32_Computersystem | Select UserName).UserName).Replace('POLIN\','')
+                $user = ((Get-WmiObject -ComputerName $ip Win32_Computersystem | Select UserName).UserName).Replace('AD.DOMAIN\','')
                 
                 if ($user.Contains('.')) {
-                    $email = $user + '@polin.it'
+                    $email = $user + '@your.domain'
                     "$(date)  Sending alert to '$email' for ip '$ip'" | Out-File C:\Script\uptime\log\Reboot-required-Email.log -Append
-                    Send-MailMessage -To $email -From ced@polin.it -Subject "Riavvio del pc necessario" -Body $body -BodyAsHtml -SmtpServer 192.168.1.30
-                    #Send-MailMessage -To christian.merlin@polin.it -From ced@polin.it -Subject "Riavvio del pc necessario" -Body $body -BodyAsHtml -SmtpServer 192.168.1.30
+                    Send-MailMessage -To $email -From from@email.com -Subject "Reboot required" -Body $body -BodyAsHtml -SmtpServer 192.168.1.X
+                    
             }
             } catch {
                 "$(date)  Error on '$ip' due to the following: '$($_.Exception.Message)'" | Out-File C:\Script\uptime\log\Reboot-required-Email.log -Append
