@@ -1,5 +1,6 @@
 #
-#  VERIFY IF PC NEED TO BE REBOOTED AND SEND AN'EMAIL TO USER
+#   VERIFY IF PC NEED TO BE REBOOTED AND SEND AN'EMAIL TO USER
+#   REQUIRE NMAP INSTALLED AND IN PATH
 #
 
 Function Get-PendingRebootStatus {
@@ -80,12 +81,12 @@ Function Get-PendingRebootStatus {
                             $Properties = @{ComputerName   = $Computer.ToUpper()
                                             PendingReboot  = 'True'
                                             }
-                            $Object = New-Object -TypeName PSObject -Property $Properties | Select ComputerName, PendingReboot
+                            $Object = New-Object -TypeName PSObject -Property $Properties | Select-Object ComputerName, PendingReboot
                         } else {
                             $Properties = @{ComputerName   = $Computer.ToUpper()
                                             PendingReboot  = 'False'
                                             }
-                            $Object = New-Object -TypeName PSObject -Property $Properties | Select ComputerName, PendingReboot
+                            $Object = New-Object -TypeName PSObject -Property $Properties | Select-Object ComputerName, PendingReboot
                         }
                     }
                      
@@ -93,7 +94,7 @@ Function Get-PendingRebootStatus {
                     $Properties = @{ComputerName   = $Computer.ToUpper()
                                     PendingReboot  = 'Error'
                                     }
-                    $Object = New-Object -TypeName PSObject -Property $Properties | Select ComputerName, PendingReboot
+                    $Object = New-Object -TypeName PSObject -Property $Properties | Select-Object ComputerName, PendingReboot
      
                     $ErrorMessage = $Computer + " Error: " + $_.Exception.Message
                     $ErrorsArray += $ErrorMessage
@@ -124,22 +125,22 @@ Function Get-PendingRebootStatus {
     
 "@
 
-    $iplist = nmap 192.168.2.0/24, 192.168.3.0/24, 192.168.4.0/24, 192.168.5.0/24, 192.168.6.0/24, 192.168.7.0/24, 192.168.8.0/24, 192.168.9.0/24, 192.168.21.0/24 -T4 -p135 --open -oG - | Where-Object{$_ -match 'Ports: 135'} | %{ $_.Split(' ')[1]; }
+    $iplist = nmap 192.168.2.0/24, 192.168.3.0/24, 192.168.4.0/24, 192.168.5.0/24, 192.168.6.0/24, 192.168.7.0/24, 192.168.8.0/24, 192.168.9.0/24, 192.168.21.0/24 -T4 -p135 --open -oG - | Where-Object{$_ -match 'Ports: 135'} | ForEach-Object{ $_.Split(' ')[1]; }
 
     foreach($ip in $iplist) {
         $pr = (Get-PendingRebootStatus -ComputerName $ip).PendingReboot
         if ($pr -eq 'True') {
             try {
-                $user = ((Get-WmiObject -ComputerName $ip Win32_Computersystem | Select UserName).UserName).Replace('AD.DOMAIN\','')
+                $user = ((Get-WmiObject -ComputerName $ip Win32_Computersystem | Select-Object UserName).UserName).Replace('AD.DOMAIN\','')
                 
                 if ($user.Contains('.')) {
                     $email = $user + '@your.domain'
-                    "$(date)  Sending alert to '$email' for ip '$ip'" | Out-File C:\Script\uptime\log\Reboot-required-Email.log -Append
+                    "$(Get-date)  Sending alert to '$email' for ip '$ip'" | Out-File C:\Script\uptime\log\Reboot-required-Email.log -Append
                     Send-MailMessage -To $email -From from@email.com -Subject "Reboot required" -Body $body -BodyAsHtml -SmtpServer 192.168.1.X
                     
             }
             } catch {
-                "$(date)  Error on '$ip' due to the following: '$($_.Exception.Message)'" | Out-File C:\Script\uptime\log\Reboot-required-Email.log -Append
+                "$(Get-date)  Error on '$ip' due to the following: '$($_.Exception.Message)'" | Out-File C:\Script\uptime\log\Reboot-required-Email.log -Append
             }
         }
     }
